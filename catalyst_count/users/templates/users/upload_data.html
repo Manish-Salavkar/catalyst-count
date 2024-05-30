@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<div class="container mt-5">
+    <h1>File Upload</h1>
+    <form method="post" enctype="multipart/form-data" id="uploadForm" class="mt-4">
+        {% csrf_token %}
+        <div class="form-group">
+            {{ form.file.label_tag }}
+            {{ form.file }}
+        </div>
+        <button type="button" id="uploadBtn" class="btn btn-primary">Upload</button>
+    </form>
+    <div class="progress mt-3" style="display: none;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" id="progressBar" role="progressbar" style="width: 0%"></div>
+    </div>
+    <div id="uploadStatus" class="mt-3"></div> <!-- Added status message div -->
+</div>
+
+<script>
+    document.getElementById('uploadBtn').addEventListener('click', async (event) => {
+        event.preventDefault();  // Prevent default form submission
+
+        const fileInput = document.getElementById('id_file');
+        const file = fileInput.files[0];
+        const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+
+        let start = 0;
+        const totalSize = file.size;
+        const progressBar = document.getElementById('progressBar');
+        const progressContainer = document.querySelector('.progress');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        progressContainer.style.display = 'block';
+        uploadStatus.textContent = 'Upload ongoing...';  // Initial message
+
+        while (start < totalSize) {
+            const chunk = file.slice(start, start + chunkSize);
+            const formData = new FormData();
+            formData.append('file', chunk);
+
+            // Determine if this is the final chunk
+            const isFinalChunk = start + chunkSize >= totalSize;
+            formData.append('is_final_chunk', isFinalChunk);
+
+            const response = await fetch('/upload_csv_simple/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            });
+
+            if (response.ok) {
+                start += chunkSize;
+                const percentComplete = Math.min(100, Math.ceil(start / totalSize * 100));
+                progressBar.style.width = `${percentComplete}%`;
+            } else {
+                console.error('Chunk upload failed:', response.status);
+                uploadStatus.textContent = 'Upload failed. Please try again.';
+                break;
+            }
+        }
+
+        if (start >= totalSize) {
+            progressBar.style.width = '100%';
+            uploadStatus.textContent = 'All chunks sent. Upload complete!';
+        }
+    });
+</script>
+
+{% endblock %}

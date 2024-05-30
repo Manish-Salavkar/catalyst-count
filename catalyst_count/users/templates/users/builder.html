@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<div class="container mt-5">
+    <h1 class="mb-4">Query Builder</h1>
+    <form id="queryForm" method="GET">
+        <div class="form-group">
+            <label for="keyword">Keyword:</label>
+            <input type="text" class="form-control" id="keyword" name="keyword">
+        </div>
+        <div class="form-group">
+            <label for="industry">Industry:</label>
+            <select class="form-control" id="industry" name="industry">
+                <option value="">All</option>
+                {% for industry in unique_industries %}
+                    <option value="{{ industry }}">{{ industry }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="cities">City:</label>
+            <select class="form-control" id="cities" name="cities">
+                <option value="">All</option>
+                {% for city in cities %}
+                    <option value="{{ city }}">{{ city }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="states">State:</label>
+            <select class="form-control" id="states" name="states">
+                <option value="">All</option>
+                {% for state in states %}
+                    <option value="{{ state }}">{{ state }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="country">Country:</label>
+            <select class="form-control" id="country" name="country">
+                <option value="">All</option>
+                {% for country in unique_countries %}
+                    <option value="{{ country }}">{{ country }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="year">Year:</label>
+            <select class="form-control" id="year" name="year">
+                <option value="">All</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="employees_from">Employees From:</label>
+            <input type="number" class="form-control" id="employees_from" name="employees_from">
+        </div>
+        <div class="form-group">
+            <label for="employees_to">Employees To:</label>
+            <input type="number" class="form-control" id="employees_to" name="employees_to">
+        </div>
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+  
+    <div id="queryResults" class="mt-4" style="display: none;">
+        <h2 id="resultCount"></h2>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Domain</th>
+                    <th>Year Founded</th>
+                    <th>Industry</th>
+                    <th>Size Range</th>
+                    <th>Locality</th>
+                    <th>Country</th>
+                    <th>LinkedIn URL</th>
+                    <th>Current Employee Estimate</th>
+                    <th>Total Employee Estimate</th>
+                </tr>
+            </thead>
+            <tbody id="queryDataBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const queryForm = document.getElementById('queryForm');
+    const queryResults = document.getElementById('queryResults');
+    const resultCount = document.getElementById('resultCount');
+    const queryDataBody = document.getElementById('queryDataBody');
+
+    queryForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const formData = new FormData(queryForm);
+        const queryParams = new URLSearchParams(formData).toString();
+        const url = `http://127.0.0.1:8000/query/?${queryParams}`;
+
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            console.log(data)
+
+            if (response.ok) {
+                resultCount.textContent = `${data.length} records found for the query.`;
+                displayData(data);
+            } else {
+                resultCount.textContent = 'Error fetching data.';
+            }
+        } catch (error) {
+            resultCount.textContent = 'An error occurred while fetching data.';
+        }
+    });
+
+    function displayData(data) {
+        queryDataBody.innerHTML = '';
+
+        data.forEach(record => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${record.name}</td>
+                <td>${record.domain}</td>
+                <td>${record.year_founded}</td>
+                <td>${record.industry}</td>
+                <td>${record.size_range}</td>
+                <td>${record.locality}</td>
+                <td>${record.country}</td>
+                <td>${record.linkedin_url}</td>
+                <td>${record.current_employee_estimate}</td>
+                <td>${record.total_employee_estimate}</td>
+            `;
+            queryDataBody.appendChild(row);
+        });
+
+        queryResults.style.display = 'block';
+    }
+</script>
+
+{% endblock %}
